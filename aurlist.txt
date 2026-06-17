@@ -1,0 +1,13 @@
+grimblast-git
+hyprsysteminfo
+python-pywalfox
+python-screeninfo
+quickshell-git
+rustdesk-bin
+swww
+swww-debug
+tide-island
+ttf-material-design-icons-extended
+yay
+yay-debug
+zen-browser-bin
