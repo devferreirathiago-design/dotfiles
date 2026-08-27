@@ -1,0 +1,27 @@
+window {
+    background-color: alpha(#0d0a14, 0.92);
+    border: 2px solid #c026d3;
+    border-radius: 12px;
+}
+
+#input {
+    background-color: #2a1a40;
+    color: #e9d5ff;
+    border: 1px solid #8b5cf6;
+    border-radius: 8px;
+    margin: 8px;
+}
+
+#entry {
+    color: #e9d5ff;
+    padding: 6px;
+}
+
+#entry:selected {
+    background-color: alpha(#8b5cf6, 0.35);
+    border-radius: 8px;
+}
+
+#text:selected {
+    color: #d946ef;
+}

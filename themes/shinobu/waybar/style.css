@@ -1,0 +1,43 @@
+@define-color base       #0d0a14;
+@define-color surface    #2a1a40;
+@define-color primary    #8b5cf6;
+@define-color accent     #d946ef;
+@define-color text       #e9d5ff;
+@define-color text-dim   #a78bca;
+@define-color border     #c026d3;
+@define-color urgent     #f472b6;
+
+* {
+    font-family: "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 13px;
+}
+
+window#waybar {
+    background-color: alpha(@base, 0.85);
+    color: @text;
+    border-bottom: 2px solid @border;
+}
+
+#workspaces button {
+    color: @text-dim;
+    background: transparent;
+    padding: 0 8px;
+}
+
+#workspaces button.active {
+    color: @accent;
+    background: alpha(@primary, 0.2);
+    border-radius: 8px;
+}
+
+#clock, #cpu, #memory, #pulseaudio, #battery, #tray {
+    color: @text;
+    background: alpha(@surface, 0.6);
+    padding: 0 10px;
+    margin: 2px 3px;
+    border-radius: 8px;
+}
+
+#pulseaudio, #battery {
+    color: @accent;
+}
