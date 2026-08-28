@@ -7,7 +7,7 @@
                        :width "1px"
                        :height "1px"
                        :anchor "bottom center")
-  :stacking "overlay"
+  :stacking "foreground"
   :namespace "eww-dock"
   :exclusive true
   (dock-widget))
