@@ -1,0 +1,72 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 40,
+    "margin-top": 0,
+    "modules-left": ["custom/arch", "hyprland/window"],
+    "modules-center": ["hyprland/workspaces"],
+    "modules-right": ["mpris", "cpu", "memory", "network", "pulseaudio", "clock", "custom/power"],
+
+    "custom/power": {
+        "format": "\uf011",
+        "tooltip-format": "Menu de energia",
+        "on-click": "~/dotfiles/scripts/power-menu.sh"
+    },
+
+    "custom/arch": {
+        "format": "\uf303",
+        "tooltip": false
+    },
+
+    "hyprland/window": {
+        "format": "{}",
+        "max-length": 30,
+        "separate-outputs": true
+    },
+
+    "hyprland/workspaces": {
+        "format": "{id}",
+        "on-click": "activate",
+        "persistent-workspaces": {},
+        "all-outputs": false
+    },
+
+    "mpris": {
+        "format": "  {title}",
+        "format-paused": "  {title}",
+        "max-length": 20,
+        "on-click": "playerctl play-pause"
+    },
+
+    "cpu": {
+        "format": "  {usage}%",
+        "interval": 5
+    },
+
+    "memory": {
+        "format": "  {}%",
+        "interval": 5
+    },
+
+    "network": {
+        "format-wifi": "  {essid}",
+        "format-ethernet": "  Conectado",
+        "format-disconnected": "  Sem rede",
+        "tooltip-format": "{ifname}: {ipaddr}/{cidr}"
+    },
+
+    "pulseaudio": {
+        "format": "{icon}  {volume}%",
+        "format-muted": "  Mudo",
+        "format-icons": {
+            "default": ["", "", ""]
+        },
+        "on-click": "pavucontrol"
+    },
+
+    "clock": {
+        "format": "{:%H:%M}",
+        "format-alt": "{:%A, %d de %B}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    }
+}
