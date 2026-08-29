@@ -83,6 +83,7 @@ ShellRoot {
                                 required property var modelData
                                 property bool active: Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === modelData.id
 
+                                visible: modelData.id > 0
                                 width: 24
                                 height: 24
                                 radius: 12
@@ -129,12 +130,28 @@ ShellRoot {
                         Text { text: ramMonitor.usage + "%"; color: "#101012"; font.pixelSize: 12; font.bold: true }
                     }
 
-                    // Relógio
-                    Text {
-                        id: clockText
-                        color: "#101012"
-                        font.pixelSize: 12
-                        font.bold: true
+                    // Relógio (clicável, abre o painel do dashboard)
+                    Rectangle {
+                        color: clockMouse.containsMouse ? "#20000000" : "transparent"
+                        radius: 8
+                        implicitWidth: clockText.implicitWidth + 12
+                        implicitHeight: 22
+
+                        Text {
+                            id: clockText
+                            anchors.centerIn: parent
+                            text: Qt.formatDateTime(bar.nowDate, "hh:mm")
+                            color: "#101012"
+                            font.pixelSize: 12
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            id: clockMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: bar.dashboardOpen = !bar.dashboardOpen
+                        }
                     }
 
                     // Botão de energia com menu dropdown de verdade
@@ -164,6 +181,59 @@ ShellRoot {
 
         // ---- Menu de energia (PopupWindow real, não fica preso à altura da barra) ----
         property bool powerMenuOpen: false
+        // ---- Dashboard (painel grande de relógio/data, próximas etapas do roadmap) ----
+        property bool dashboardOpen: false
+        property var nowDate: new Date()
+    }
+
+    PopupWindow {
+        id: dashboard
+        anchor.window: bar
+        anchor.rect.x: (bar.width - implicitWidth) / 2
+        anchor.rect.y: bar.height
+        implicitWidth: 340
+        implicitHeight: 200
+        visible: bar.dashboardOpen
+        color: "transparent"
+
+        // Nomes em português — QML/Qt.formatDateTime não localiza pt-BR por padrão
+        property var diasSemana: ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
+        property var meses: ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#f2ffffff"
+            border.color: "#66ffffff"
+            radius: 20
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 4
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(bar.nowDate, "hh:mm")
+                    color: "#101012"
+                    font.pixelSize: 56
+                    font.bold: true
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: dashboard.diasSemana[bar.nowDate.getDay()]
+                    color: "#3a3a3c"
+                    font.pixelSize: 15
+                    font.bold: true
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: bar.nowDate.getDate() + " de " + dashboard.meses[bar.nowDate.getMonth()] + " de " + bar.nowDate.getFullYear()
+                    color: "#6a6a6e"
+                    font.pixelSize: 13
+                }
+            }
+        }
     }
 
     PopupWindow {
@@ -261,10 +331,7 @@ ShellRoot {
             interval: 1000
             running: true
             repeat: true
-            onTriggered: {
-                const d = new Date()
-                clockText.text = d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0")
-            }
+            onTriggered: bar.nowDate = new Date()
         }
 
         // ---- CPU: lê /proc/stat a cada 3s ----
