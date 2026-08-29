@@ -191,14 +191,53 @@ ShellRoot {
         anchor.window: bar
         anchor.rect.x: (bar.width - implicitWidth) / 2
         anchor.rect.y: bar.height
-        implicitWidth: 340
-        implicitHeight: 200
+        implicitWidth: 300
+        implicitHeight: 440
         visible: bar.dashboardOpen
         color: "transparent"
 
         // Nomes em português — QML/Qt.formatDateTime não localiza pt-BR por padrão
         property var diasSemana: ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
+        property var diasSemanaAbrev: ["D", "S", "T", "Q", "Q", "S", "S"]
         property var meses: ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+        // ---- Calendário ----
+        property int viewMonth: bar.nowDate.getMonth()
+        property int viewYear: bar.nowDate.getFullYear()
+        property var calendarDays: []
+
+        function buildCalendar() {
+            const firstDay = new Date(viewYear, viewMonth, 1)
+            const startWeekday = firstDay.getDay()
+            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+            const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate()
+            let cells = []
+
+            for (let i = startWeekday - 1; i >= 0; i--) {
+                cells.push({ day: daysInPrevMonth - i, current: false })
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+                cells.push({ day: d, current: true })
+            }
+            let nextDay = 1
+            while (cells.length < 42) {
+                cells.push({ day: nextDay, current: false })
+                nextDay++
+            }
+            calendarDays = cells
+        }
+
+        function prevMonth() {
+            if (viewMonth === 0) { viewMonth = 11; viewYear-- } else { viewMonth-- }
+            buildCalendar()
+        }
+
+        function nextMonth() {
+            if (viewMonth === 11) { viewMonth = 0; viewYear++ } else { viewMonth++ }
+            buildCalendar()
+        }
+
+        Component.onCompleted: buildCalendar()
 
         Rectangle {
             anchors.fill: parent
@@ -231,6 +270,95 @@ ShellRoot {
                     text: bar.nowDate.getDate() + " de " + dashboard.meses[bar.nowDate.getMonth()] + " de " + bar.nowDate.getFullYear()
                     color: "#6a6a6e"
                     font.pixelSize: 13
+                }
+
+                Item { width: 1; height: 10 }
+
+                // ---- Navegação do mês ----
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 16
+
+                    Text {
+                        text: "‹"
+                        font.pixelSize: 18
+                        font.bold: true
+                        color: "#101012"
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -6
+                            onClicked: dashboard.prevMonth()
+                        }
+                    }
+
+                    Text {
+                        text: dashboard.meses[dashboard.viewMonth] + " " + dashboard.viewYear
+                        font.pixelSize: 13
+                        font.bold: true
+                        color: "#101012"
+                    }
+
+                    Text {
+                        text: "›"
+                        font.pixelSize: 18
+                        font.bold: true
+                        color: "#101012"
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -6
+                            onClicked: dashboard.nextMonth()
+                        }
+                    }
+                }
+
+                // ---- Cabeçalho dos dias da semana ----
+                Grid {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    columns: 7
+                    columnSpacing: 4
+
+                    Repeater {
+                        model: dashboard.diasSemanaAbrev
+                        delegate: Text {
+                            required property string modelData
+                            width: 30
+                            horizontalAlignment: Text.AlignHCenter
+                            text: modelData
+                            font.pixelSize: 11
+                            color: "#6a6a6e"
+                        }
+                    }
+                }
+
+                // ---- Grid de dias do mês ----
+                Grid {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    columns: 7
+                    columnSpacing: 4
+                    rowSpacing: 4
+
+                    Repeater {
+                        model: dashboard.calendarDays
+                        delegate: Rectangle {
+                            required property var modelData
+                            property bool isToday: modelData.current
+                                && modelData.day === bar.nowDate.getDate()
+                                && dashboard.viewMonth === bar.nowDate.getMonth()
+                                && dashboard.viewYear === bar.nowDate.getFullYear()
+
+                            width: 30
+                            height: 26
+                            radius: 8
+                            color: isToday ? "#0a0a0c" : "transparent"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData.day
+                                font.pixelSize: 12
+                                color: isToday ? "#ffffff" : (modelData.current ? "#101012" : "#c0c0c0")
+                            }
+                        }
+                    }
                 }
             }
         }
