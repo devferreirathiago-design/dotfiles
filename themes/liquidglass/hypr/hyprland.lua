@@ -6,6 +6,14 @@
 local mainMod = "SUPER"
 
 ------------------------
+---- VARIÁVEIS DE AMBIENTE ----
+------------------------
+
+-- Correção pra bug conhecido de stutter/freeze em fullscreen com GPUs AMD
+-- (conflito entre atomic modesetting do driver e o compositor Wayland)
+hl.env("WLR_DRM_NO_ATOMIC", "1")
+
+------------------------
 ---- MONITOR ----
 ------------------------
 
@@ -48,11 +56,32 @@ hl.config({
         rounding = 14,
         blur = {
             enabled        = true,
-            size           = 8,
-            passes         = 3,
+            size           = 6,
+            passes         = 2,
             ignore_opacity = true,
         },
     },
+})
+
+------------------------
+---- LAYER RULES (blur em waybar/wofi) ----
+------------------------
+
+hl.layer_rule({
+    match = { namespace = "waybar" },
+    blur = true,
+    ignore_alpha = 0.2,
+})
+
+hl.layer_rule({
+    match = { namespace = "quickshell-bar" },
+    blur = true,
+    ignore_alpha = 0.2,
+})
+
+hl.layer_rule({
+    match = { namespace = "wofi" },
+    blur = true,
 })
 
 ------------------------
@@ -61,7 +90,7 @@ hl.config({
 
 hl.bind(mainMod .. " + " .. "Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + " .. "T", hl.dsp.exec_cmd("kitty"))
-hl.bind(mainMod .. " + " .. "N", hl.dsp.exec_cmd("Floorp"))
+hl.bind(mainMod .. " + " .. "N", hl.dsp.exec_cmd("floorp"))
 hl.bind(mainMod .. " + " .. "V", hl.dsp.exec_cmd("code"))
 hl.bind(mainMod .. " + " .. "E", hl.dsp.exec_cmd("wofi --show drun --style ~/.config/wofi/style.css"))
 hl.bind(mainMod .. " + " .. "F", hl.dsp.exec_cmd("thunar"))
@@ -117,12 +146,22 @@ hl.window_rule({
     workspace = "special:steam silent",
 })
 
+-- Floorp com leve transparência (tema liquidglass)
+hl.window_rule({
+    name    = "floorp-glass",
+    match   = { class = "^(floorp)$" },
+    opacity = "0.94 0.88",
+})
+
 ------------------------
 ---- AUTOSTART ----
 ------------------------
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("kitty")
-    hl.exec_cmd("waybar")
+    -- hl.exec_cmd("waybar")  -- desativado: substituído pela barra em Quickshell
+    hl.exec_cmd("quickshell -c liquidglass")
     hl.exec_cmd("setsid awww-daemon --format xrgb")
+    hl.exec_cmd("eww daemon")
+    hl.exec_cmd("eww open dock")
 end)
