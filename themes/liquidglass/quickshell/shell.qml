@@ -98,7 +98,10 @@ ShellRoot {
 
                                 MouseArea {
                                     anchors.fill: parent
-                                    onClicked: Hyprland.dispatch("workspace " + modelData.id)
+                                    onClicked: {
+                                        wsProc.command = ["hyprctl", "dispatch", "hl.dsp.focus({workspace=" + modelData.id + "})"]
+                                        wsProc.running = true
+                                    }
                                 }
                             }
                         }
@@ -237,6 +240,10 @@ ShellRoot {
                     Hyprland.refreshWorkspaces()
                 }
             }
+        }
+
+        Process {
+            id: wsProc
         }
 
         Process {
