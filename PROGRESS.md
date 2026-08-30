@@ -26,11 +26,15 @@ por limitação de fluidez visual do GTK. Waybar e eww estão desativados.
   `hl.config`, `hl.window_rule`, `hl.layer_rule`, `hl.monitor`). Doc oficial:
   https://alejandrominaya.github.io/hyprland-lua-docs/ — sempre conferir antes
   de supor sintaxe.
-- **Popups do Quickshell (PopupWindow) precisam de `grabFocus: true`** pra
-  aceitar teclado E fechar ao clicar fora. Sem isso, ficam "surdos" a teclado
-  por padrão (bug já resolvido, mas documentado aqui pra não reintroduzir).
-  NÃO usar `WlrLayershell.keyboardFocus` manual — causou travamento geral da
-  barra num teste anterior.
+- **Popups do Quickshell (PopupWindow) precisam de foco pra aceitar teclado
+  e fechar ao clicar fora.** NÃO usar `grabFocus: true` (genérico, via
+  `xdg_popup` — teve bug de "precisa clicar 2x pra abrir" nesse setup) nem
+  `WlrLayershell.keyboardFocus` manual (travou a barra inteira num teste).
+  Usar `HyprlandFocusGrab` (de `Quickshell.Hyprland`), que é a extensão de
+  protocolo feita especificamente pro Hyprland — mais estável aqui. Ativar
+  com um `Timer` de ~50ms de delay depois do `visible` virar true (sem o
+  delay, o primeiro popup da sessão não recebe o grab corretamente por uma
+  corrida na inicialização da superfície Wayland).
 - **`min_size` em window_rule usa formato `"N N"`** (espaço), não `"NxN"`.
 - **Workspace ESPECIAL do Hyprland tem bug conhecido** (issue #7998, "not
   planned"): popups/context menus de janelas dentro de workspace especial
