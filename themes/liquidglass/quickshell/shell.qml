@@ -102,6 +102,7 @@ ShellRoot {
                                 MouseArea {
                                     anchors.fill: parent
                                     onClicked: {
+                                        if (!modelData) return
                                         wsProc.command = ["hyprctl", "dispatch", "hl.dsp.focus({workspace=" + modelData.id + "})"]
                                         wsProc.running = true
                                     }
@@ -408,9 +409,13 @@ ShellRoot {
         implicitHeight: Math.min(400, historyColumn.implicitHeight + 60)
         visible: bar.notifHistoryOpen
         color: "transparent"
-
+        grabFocus: true
+        // sem isso, o popup nasce sem interatividade de teclado (padrão do
+        // protocolo layer-shell) e ESC nunca chega até aqui
         Rectangle {
             anchors.fill: parent
+            focus: true
+            Keys.onEscapePressed: bar.notifHistoryOpen = false
             color: "#f2ffffff"
             border.color: "#66ffffff"
             radius: 18
@@ -514,6 +519,7 @@ ShellRoot {
         implicitHeight: 440 + (mediaCard.visible ? mediaCard.height + 16 : 0)
         visible: bar.dashboardOpen
         color: "transparent"
+        grabFocus: true
 
         // Nomes em português — QML/Qt.formatDateTime não localiza pt-BR por padrão
         property var diasSemana: ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
@@ -574,6 +580,8 @@ ShellRoot {
 
         Rectangle {
             anchors.fill: parent
+            focus: true
+            Keys.onEscapePressed: bar.dashboardOpen = false
             color: "#f2ffffff"
             border.color: "#66ffffff"
             radius: 20
@@ -808,9 +816,12 @@ ShellRoot {
         implicitHeight: powerMenuColumn.implicitHeight + 12
         visible: bar.powerMenuOpen
         color: "transparent"
+        grabFocus: true
 
         Rectangle {
             anchors.fill: parent
+            focus: true
+            Keys.onEscapePressed: bar.powerMenuOpen = false
             color: "#f2ffffff"
             border.color: "#66ffffff"
             radius: 14
@@ -1006,6 +1017,9 @@ ShellRoot {
         implicitHeight: 400
         visible: bar.launcherOpen
         color: "transparent"
+        // grabFocus: solução oficial do Quickshell pra popup — dá foco de
+        // teclado de verdade E fecha sozinho ao clicar fora, tudo de uma vez
+        grabFocus: true
 
         property var allApps: []
         property string searchText: ""
@@ -1140,6 +1154,7 @@ ShellRoot {
         implicitHeight: togglesColumn.implicitHeight + 28
         visible: bar.togglesOpen
         color: "transparent"
+        grabFocus: true
 
         property bool wifiEnabled: false
         property bool btEnabled: false
@@ -1155,6 +1170,8 @@ ShellRoot {
 
         Rectangle {
             anchors.fill: parent
+            focus: true
+            Keys.onEscapePressed: bar.togglesOpen = false
             color: "#f2ffffff"
             border.color: "#66ffffff"
             radius: 18
