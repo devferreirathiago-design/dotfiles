@@ -119,10 +119,10 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 -- Redimensionar janelas com SUPER + Clique Direito
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
--- Steam: toggle do workspace especial (esconde/mostra sem fechar)
--- Confirmado na doc oficial: hl.dsp.workspace.toggle_special(name?) usa
--- argumento posicional mesmo, essa linha está correta.
-hl.bind(mainMod .. " + " .. "S", hl.dsp.workspace.toggle_special("steam"))
+-- Steam: atalho rápido pro workspace 9 (onde ela sempre abre)
+-- (trocado de toggle_special pra focus normal — ver nota na window rule
+-- "steam-workspace" sobre o bug do workspace especial)
+hl.bind(mainMod .. " + " .. "S", hl.dsp.focus({ workspace = 9 }))
 
 ------------------------
 ---- WORKSPACES ----
@@ -140,11 +140,16 @@ hl.bind(mainMod .. " + SHIFT + " .. "TAB", hl.dsp.focus({ workspace = "e-1" }))
 ---- WINDOW RULES ----
 ------------------------
 
--- Steam sempre abre direto no workspace especial (fica "escondida" até você chamar com SUPER+S)
+-- Steam sempre abre no workspace 9 (silenciosamente, sem roubar foco).
+-- IMPORTANTE: workspace ESPECIAL foi abandonado de propósito aqui — é a causa
+-- confirmada do bug de menu de contexto aparecendo atrás da janela (issue
+-- oficial do Hyprland #7998, fechada como "not planned": o bug SÓ acontece
+-- dentro de workspace especial, não em workspace normal). Título ".+" (não
+-- vazio) ainda evita capturar os próprios popups de menu de contexto.
 hl.window_rule({
     name      = "steam-workspace",
-    match     = { class = "^(steam)$" },
-    workspace = "special:steam silent",
+    match     = { class = "^(steam)$", title = ".+" },
+    workspace = "9 silent",
 })
 
 -- Fix: menu de contexto do Steam (clique direito na lista de amigos, por exemplo)
