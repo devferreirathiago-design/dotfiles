@@ -155,7 +155,7 @@ hl.window_rule({
     name        = "steam-context-menu-fix",
     match       = { class = "^(steam)$", title = "^$" },
     stay_focused = true,
-    min_size     = "1x1",
+    min_size     = "1 1",
 })
 
 -- Floorp com leve transparência (tema liquidglass)
