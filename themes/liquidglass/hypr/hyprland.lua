@@ -95,6 +95,8 @@ hl.bind(mainMod .. " + " .. "V", hl.dsp.exec_cmd("code"))
 hl.bind(mainMod .. " + " .. "E", hl.dsp.exec_cmd("wofi --show drun --style ~/.config/wofi/style.css"))
 hl.bind(mainMod .. " + " .. "F", hl.dsp.exec_cmd("thunar"))
 hl.bind(mainMod .. " + " .. "W", hl.dsp.exec_cmd("~/scripts/trocar_wallpaper.sh"))
+hl.bind("SUPER+SHIFT+F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
+hl.bind("SUPER+M", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
 
 -- Abre o btop flutuante, centralizado e com um tamanho fixo
 hl.bind(mainMod .. " + SHIFT + " .. "G", hl.dsp.exec_cmd("kitty --title btop-float -e btop"))
