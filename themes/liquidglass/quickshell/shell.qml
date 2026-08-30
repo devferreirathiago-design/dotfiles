@@ -138,6 +138,27 @@ ShellRoot {
                         }
                     }
 
+                    // Quick toggles (Wi-Fi / Bluetooth)
+                    Rectangle {
+                        width: 26
+                        height: 26
+                        radius: 13
+                        color: togglesMouseArea.containsMouse ? "#20000000" : "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰤨"  // ícone wifi (Nerd Font, mesmo set do logo Arch)
+                            font.pixelSize: 15
+                        }
+
+                        MouseArea {
+                            id: togglesMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: bar.togglesOpen = !bar.togglesOpen
+                        }
+                    }
+
                     // CPU com rótulo claro
                     RowLayout {
                         spacing: 4
@@ -207,6 +228,8 @@ ShellRoot {
         property bool dashboardOpen: false
         // ---- Launcher de apps ----
         property bool launcherOpen: false
+        // ---- Quick toggles (Wi-Fi / Bluetooth) ----
+        property bool togglesOpen: false
         property var nowDate: new Date()
     }
 
@@ -830,6 +853,187 @@ ShellRoot {
 
         Process {
             id: launchProc
+        }
+    }
+
+    // ── Quick toggles (Wi-Fi / Bluetooth) ─────────────────────
+    PopupWindow {
+        id: toggles
+        anchor.window: bar
+        // Aproximação: o botão 📶 fica à esquerda do grupo CPU/RAM/relógio/energia,
+        // então ancoramos a partir da borda direita da barra, com uma folga que
+        // "pula" esse grupo. Se ainda ficar deslocado do ícone, ajuste esse -230.
+        anchor.rect.x: bar.width - implicitWidth - 230
+        anchor.rect.y: bar.height
+        implicitWidth: 240
+        implicitHeight: togglesColumn.implicitHeight + 28
+        visible: bar.togglesOpen
+        color: "transparent"
+
+        property bool wifiEnabled: false
+        property bool btEnabled: false
+
+        function refresh() {
+            wifiCheckProc.running = true
+            btCheckProc.running = true
+        }
+
+        onVisibleChanged: {
+            if (visible) refresh()
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#f2ffffff"
+            border.color: "#66ffffff"
+            radius: 18
+
+            Column {
+                id: togglesColumn
+                anchors.centerIn: parent
+                width: parent.width - 28
+                spacing: 14
+
+                // ---- Linha Wi-Fi ----
+                RowLayout {
+                    width: parent.width
+                    spacing: 10
+
+                    ColumnLayout {
+                        spacing: 1
+                        Layout.fillWidth: true
+                        Text { text: "Wi-Fi"; color: "#101012"; font.pixelSize: 14; font.bold: true }
+                        Text {
+                            text: toggles.wifiEnabled ? "Ativado" : "Desativado"
+                            color: "#6a6a6e"
+                            font.pixelSize: 11
+                        }
+                    }
+
+                    // switch
+                    Rectangle {
+                        id: wifiSwitch
+                        width: 44
+                        height: 24
+                        radius: 12
+                        color: toggles.wifiEnabled ? "#0a0a0c" : "#30000000"
+
+                        Rectangle {
+                            id: wifiKnob
+                            width: 18
+                            height: 18
+                            radius: 9
+                            color: "#ffffff"
+                            y: 3
+                            x: toggles.wifiEnabled ? (parent.width - width - 3) : 3
+                            Behavior on x { NumberAnimation { duration: 120 } }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                wifiToggleProc.command = ["sh", "-c", "nmcli radio wifi " + (toggles.wifiEnabled ? "off" : "on")]
+                                wifiToggleProc.running = true
+                            }
+                        }
+                    }
+                }
+
+                // ---- Linha Bluetooth ----
+                RowLayout {
+                    width: parent.width
+                    spacing: 10
+
+                    ColumnLayout {
+                        spacing: 1
+                        Layout.fillWidth: true
+                        Text { text: "Bluetooth"; color: "#101012"; font.pixelSize: 14; font.bold: true }
+                        Text {
+                            text: toggles.btEnabled ? "Ativado" : "Desativado"
+                            color: "#6a6a6e"
+                            font.pixelSize: 11
+                        }
+                    }
+
+                    // switch
+                    Rectangle {
+                        id: btSwitch
+                        width: 44
+                        height: 24
+                        radius: 12
+                        color: toggles.btEnabled ? "#0a0a0c" : "#30000000"
+
+                        Rectangle {
+                            id: btKnob
+                            width: 18
+                            height: 18
+                            radius: 9
+                            color: "#ffffff"
+                            y: 3
+                            x: toggles.btEnabled ? (parent.width - width - 3) : 3
+                            Behavior on x { NumberAnimation { duration: 120 } }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                btToggleProc.command = ["sh", "-c", "bluetoothctl power " + (toggles.btEnabled ? "off" : "on")]
+                                btToggleProc.running = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- Checagem de status ----
+        Process {
+            id: wifiCheckProc
+            command: ["sh", "-c", "nmcli radio wifi"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    toggles.wifiEnabled = text.trim() === "enabled"
+                }
+            }
+        }
+
+        Process {
+            id: btCheckProc
+            command: ["sh", "-c", "bluetoothctl show | grep -i Powered"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    toggles.btEnabled = text.toLowerCase().indexOf("yes") !== -1
+                }
+            }
+        }
+
+        // ---- Ações de toggle (reconsulta status logo em seguida) ----
+        Process {
+            id: wifiToggleProc
+            stdout: StdioCollector {
+                onStreamFinished: wifiRecheckTimer.start()
+            }
+        }
+
+        Process {
+            id: btToggleProc
+            stdout: StdioCollector {
+                onStreamFinished: btRecheckTimer.start()
+            }
+        }
+
+        Timer {
+            id: wifiRecheckTimer
+            interval: 600
+            repeat: false
+            onTriggered: wifiCheckProc.running = true
+        }
+
+        Timer {
+            id: btRecheckTimer
+            interval: 600
+            repeat: false
+            onTriggered: btCheckProc.running = true
         }
     }
 }
