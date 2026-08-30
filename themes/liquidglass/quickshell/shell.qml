@@ -239,6 +239,20 @@ ShellRoot {
 
         Component.onCompleted: buildCalendar()
 
+        // ---- Clima (Open-Meteo, sem necessidade de chave de API) ----
+        function weatherInfo(code) {
+            if (code === 0) return { icon: "☀", label: "Céu limpo" }
+            if (code <= 2) return { icon: "🌤", label: "Poucas nuvens" }
+            if (code === 3) return { icon: "☁", label: "Nublado" }
+            if (code === 45 || code === 48) return { icon: "🌫", label: "Neblina" }
+            if (code >= 51 && code <= 57) return { icon: "🌦", label: "Garoa" }
+            if (code >= 61 && code <= 67) return { icon: "🌧", label: "Chuva" }
+            if (code >= 71 && code <= 77) return { icon: "❄", label: "Neve" }
+            if (code >= 80 && code <= 82) return { icon: "🌧", label: "Pancadas de chuva" }
+            if (code >= 95) return { icon: "⛈", label: "Tempestade" }
+            return { icon: "🌡", label: "—" }
+        }
+
         Rectangle {
             anchors.fill: parent
             color: "#f2ffffff"
@@ -270,6 +284,16 @@ ShellRoot {
                     text: bar.nowDate.getDate() + " de " + dashboard.meses[bar.nowDate.getMonth()] + " de " + bar.nowDate.getFullYear()
                     color: "#6a6a6e"
                     font.pixelSize: 13
+                }
+
+                // ---- Clima ----
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: weatherMonitor.loaded
+                    text: weatherMonitor.icon + "  " + weatherMonitor.temp + "°C — " + weatherMonitor.label
+                    color: "#3a3a3c"
+                    font.pixelSize: 13
+                    font.bold: true
                 }
 
                 Item { width: 1; height: 10 }
@@ -522,6 +546,42 @@ ShellRoot {
             repeat: true
             triggeredOnStart: true
             onTriggered: ramProc.running = true
+        }
+
+        // ---- Clima: busca a cada 15 minutos via Open-Meteo ----
+        QtObject {
+            id: weatherMonitor
+            property real temp: 0
+            property string icon: ""
+            property string label: ""
+            property bool loaded: false
+        }
+
+        Process {
+            id: weatherProc
+            command: ["sh", "-c", "curl -s 'https://api.open-meteo.com/v1/forecast?latitude=-22.9977&longitude=-43.6247&current_weather=true&timezone=America/Sao_Paulo'"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const data = JSON.parse(text)
+                        const info = dashboard.weatherInfo(data.current_weather.weathercode)
+                        weatherMonitor.temp = Math.round(data.current_weather.temperature)
+                        weatherMonitor.icon = info.icon
+                        weatherMonitor.label = info.label
+                        weatherMonitor.loaded = true
+                    } catch (e) {
+                        console.log("Erro ao processar clima:", e)
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 900000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: weatherProc.running = true
         }
     }
 }
