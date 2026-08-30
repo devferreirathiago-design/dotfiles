@@ -3,6 +3,7 @@
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Services.Mpris
 import Quickshell.Io
 import QtQuick
 import QtQuick.Controls
@@ -192,7 +193,8 @@ ShellRoot {
         anchor.rect.x: (bar.width - implicitWidth) / 2
         anchor.rect.y: bar.height
         implicitWidth: 300
-        implicitHeight: 440
+        // altura cresce automaticamente quando o player mpris aparece
+        implicitHeight: 440 + (mediaCard.visible ? mediaCard.height + 16 : 0)
         visible: bar.dashboardOpen
         color: "transparent"
 
@@ -380,6 +382,98 @@ ShellRoot {
                                 text: modelData.day
                                 font.pixelSize: 12
                                 color: isToday ? "#ffffff" : (modelData.current ? "#101012" : "#c0c0c0")
+                            }
+                        }
+                    }
+                }
+
+                Item { width: 1; height: mediaCard.visible ? 10 : 0 }
+
+                // ── Media Player (mpris) ──────────────────────────────
+                Rectangle {
+                    id: mediaCard
+                    visible: Mpris.players.values.length > 0
+                    width: 260
+                    height: 76
+                    radius: 16
+                    color: "#22000000"
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    // pega o primeiro player ativo (geralmente o que está tocando)
+                    property var player: Mpris.players.values.length > 0 ? Mpris.players.values[0] : null
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 10
+
+                        // capa (se disponível)
+                        Rectangle {
+                            Layout.preferredWidth: 56
+                            Layout.preferredHeight: 56
+                            radius: 12
+                            color: "#33000000"
+                            clip: true
+
+                            Image {
+                                anchors.fill: parent
+                                source: mediaCard.player ? mediaCard.player.trackArtUrl : ""
+                                fillMode: Image.PreserveAspectCrop
+                                visible: source !== ""
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Text {
+                                text: mediaCard.player ? (mediaCard.player.trackTitle || "Sem título") : ""
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: "#101012"
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                text: mediaCard.player ? (mediaCard.player.trackArtist || "") : ""
+                                font.pixelSize: 11
+                                color: "#6a6a6e"
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            RowLayout {
+                                spacing: 16
+                                Layout.topMargin: 4
+
+                                Text {
+                                    text: "⏮"
+                                    font.pixelSize: 14
+                                    color: "#101012"
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: mediaCard.player && mediaCard.player.previous()
+                                    }
+                                }
+                                Text {
+                                    text: mediaCard.player && mediaCard.player.isPlaying ? "⏸" : "▶"
+                                    font.pixelSize: 16
+                                    color: "#101012"
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: mediaCard.player && mediaCard.player.togglePlaying()
+                                    }
+                                }
+                                Text {
+                                    text: "⏭"
+                                    font.pixelSize: 14
+                                    color: "#101012"
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: mediaCard.player && mediaCard.player.next()
+                                    }
+                                }
                             }
                         }
                     }
