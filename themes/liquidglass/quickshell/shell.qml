@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
+import Quickshell.Services.Notifications
 import Quickshell.Io
 import QtQuick
 import QtQuick.Controls
@@ -159,6 +160,51 @@ ShellRoot {
                         }
                     }
 
+                    // Notificações (rótulo em texto — evita depender de glifo de ícone)
+                    Rectangle {
+                        color: notifMouseArea.containsMouse ? "#20000000" : "transparent"
+                        radius: 8
+                        implicitWidth: notifRow.implicitWidth + 12
+                        implicitHeight: 22
+
+                        Row {
+                            id: notifRow
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Text {
+                                text: "Avisos"
+                                color: "#101012"
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+
+                            Rectangle {
+                                visible: notifServer.trackedNotifications.values.length > 0
+                                width: 15
+                                height: 15
+                                radius: 8
+                                color: "#c8382e"
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: notifServer.trackedNotifications.values.length
+                                    color: "#ffffff"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: notifMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: bar.notifHistoryOpen = !bar.notifHistoryOpen
+                        }
+                    }
+
                     // CPU com rótulo claro
                     RowLayout {
                         spacing: 4
@@ -230,7 +276,232 @@ ShellRoot {
         property bool launcherOpen: false
         // ---- Quick toggles (Wi-Fi / Bluetooth) ----
         property bool togglesOpen: false
+        // ---- Notificações ----
+        property bool notifHistoryOpen: false
+        // Histórico persistido em memória (snapshot de dados, já que o objeto
+        // Notification original é destruído quando expira/é dispensado)
+        property var notifHistory: []
         property var nowDate: new Date()
+    }
+
+    // ── Servidor de notificações (substitui mako/dunst) ───────
+    NotificationServer {
+        id: notifServer
+        bodySupported: true
+        imageSupported: true
+        actionsSupported: true
+        // false: evita reemitir notificações antigas a cada reload do Quickshell
+        keepOnReload: false
+
+        onNotification: (notification) => {
+            // precisa marcar tracked=true, senão a notificação é descartada na hora
+            notification.tracked = true
+
+            // snapshot pro histórico (o objeto original pode ser destruído depois)
+            const entry = {
+                appName: notification.appName || "Sistema",
+                summary: notification.summary || "",
+                body: notification.body || "",
+                time: Qt.formatDateTime(new Date(), "hh:mm")
+            }
+            bar.notifHistory = [entry].concat(bar.notifHistory).slice(0, 50)
+        }
+    }
+
+    // ── Popups de notificação (toast, canto superior direito) ──
+    PanelWindow {
+        id: toastWindow
+        anchors {
+            top: true
+            right: true
+        }
+        margins {
+            top: 50
+            right: 14
+        }
+        implicitWidth: 300
+        implicitHeight: toastColumn.implicitHeight
+        color: "transparent"
+        visible: notifServer.trackedNotifications.values.length > 0
+        WlrLayershell.namespace: "quickshell-notifications"
+        WlrLayershell.layer: WlrLayer.Overlay
+
+        Column {
+            id: toastColumn
+            width: parent.width
+            spacing: 8
+
+            Repeater {
+                model: notifServer.trackedNotifications.values
+                delegate: Rectangle {
+                    id: toastItem
+                    required property var modelData
+                    width: toastColumn.width
+                    height: toastContent.implicitHeight + 20
+                    radius: 16
+                    color: "#f2ffffff"
+                    border.color: "#66ffffff"
+
+                    Column {
+                        id: toastContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 14
+                        spacing: 2
+
+                        Row {
+                            width: parent.width
+                            Text {
+                                width: parent.width - 20
+                                text: (toastItem.modelData.appName || "Sistema") + " — " + (toastItem.modelData.summary || "")
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: "#101012"
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                text: "✕"
+                                font.pixelSize: 12
+                                color: "#6a6a6e"
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -6
+                                    onClicked: toastItem.modelData.dismiss()
+                                }
+                            }
+                        }
+
+                        Text {
+                            visible: (toastItem.modelData.body || "") !== ""
+                            width: parent.width
+                            text: toastItem.modelData.body || ""
+                            font.pixelSize: 11
+                            color: "#3a3a3c"
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 3
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    // auto-dismiss (usa expireTimeout do app se informado, senão 6s)
+                    Timer {
+                        interval: toastItem.modelData.expireTimeout > 0 ? toastItem.modelData.expireTimeout * 1000 : 6000
+                        running: true
+                        repeat: false
+                        onTriggered: toastItem.modelData.expire()
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Histórico de notificações ─────────────────────────────
+    PopupWindow {
+        id: notifHistory
+        anchor.window: bar
+        // mesma lógica de aproximação do painel de toggles
+        anchor.rect.x: bar.width - implicitWidth - 130
+        anchor.rect.y: bar.height
+        implicitWidth: 300
+        implicitHeight: Math.min(400, historyColumn.implicitHeight + 60)
+        visible: bar.notifHistoryOpen
+        color: "transparent"
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#f2ffffff"
+            border.color: "#66ffffff"
+            radius: 18
+
+            Text {
+                visible: bar.notifHistory.length === 0
+                anchors.centerIn: parent
+                text: "Nenhuma notificação ainda"
+                color: "#6a6a6e"
+                font.pixelSize: 12
+            }
+
+            Flickable {
+                anchors.fill: parent
+                anchors.margins: 14
+                anchors.topMargin: 40
+                contentHeight: historyColumn.implicitHeight
+                clip: true
+                visible: bar.notifHistory.length > 0
+
+                Column {
+                    id: historyColumn
+                    width: parent.width
+                    spacing: 8
+
+                    Repeater {
+                        model: bar.notifHistory
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: historyColumn.width
+                            height: entryContent.implicitHeight + 16
+                            radius: 10
+                            color: "#18000000"
+
+                            Column {
+                                id: entryContent
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 1
+
+                                Row {
+                                    width: parent.width
+                                    Text {
+                                        width: parent.width - 40
+                                        text: modelData.appName
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        color: "#101012"
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        width: 40
+                                        horizontalAlignment: Text.AlignRight
+                                        text: modelData.time
+                                        font.pixelSize: 10
+                                        color: "#6a6a6e"
+                                    }
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.summary
+                                    font.pixelSize: 11
+                                    color: "#3a3a3c"
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // botão limpar histórico
+            Text {
+                visible: bar.notifHistory.length > 0
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 12
+                text: "Limpar"
+                font.pixelSize: 11
+                color: "#c8382e"
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    onClicked: bar.notifHistory = []
+                }
+            }
+        }
     }
 
     PopupWindow {
