@@ -409,7 +409,21 @@ ShellRoot {
         implicitHeight: Math.min(400, historyColumn.implicitHeight + 60)
         visible: bar.notifHistoryOpen
         color: "transparent"
-        grabFocus: true
+
+        onVisibleChanged: if (visible) notifHistoryGrabTimer.restart()
+
+        Timer {
+            id: notifHistoryGrabTimer
+            interval: 50
+            repeat: false
+            onTriggered: notifHistoryGrab.active = true
+        }
+
+        HyprlandFocusGrab {
+            id: notifHistoryGrab
+            windows: [ notifHistory ]
+            onCleared: bar.notifHistoryOpen = false
+        }
         // sem isso, o popup nasce sem interatividade de teclado (padrão do
         // protocolo layer-shell) e ESC nunca chega até aqui
         Rectangle {
@@ -519,7 +533,21 @@ ShellRoot {
         implicitHeight: 440 + (mediaCard.visible ? mediaCard.height + 16 : 0)
         visible: bar.dashboardOpen
         color: "transparent"
-        grabFocus: true
+
+        onVisibleChanged: if (visible) dashboardGrabTimer.restart()
+
+        Timer {
+            id: dashboardGrabTimer
+            interval: 50
+            repeat: false
+            onTriggered: dashboardGrab.active = true
+        }
+
+        HyprlandFocusGrab {
+            id: dashboardGrab
+            windows: [ dashboard ]
+            onCleared: bar.dashboardOpen = false
+        }
 
         // Nomes em português — QML/Qt.formatDateTime não localiza pt-BR por padrão
         property var diasSemana: ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
@@ -816,7 +844,21 @@ ShellRoot {
         implicitHeight: powerMenuColumn.implicitHeight + 12
         visible: bar.powerMenuOpen
         color: "transparent"
-        grabFocus: true
+
+        onVisibleChanged: if (visible) powerMenuGrabTimer.restart()
+
+        Timer {
+            id: powerMenuGrabTimer
+            interval: 50
+            repeat: false
+            onTriggered: powerMenuGrab.active = true
+        }
+
+        HyprlandFocusGrab {
+            id: powerMenuGrab
+            windows: [ powerMenu ]
+            onCleared: bar.powerMenuOpen = false
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -1017,9 +1059,6 @@ ShellRoot {
         implicitHeight: 400
         visible: bar.launcherOpen
         color: "transparent"
-        // grabFocus: solução oficial do Quickshell pra popup — dá foco de
-        // teclado de verdade E fecha sozinho ao clicar fora, tudo de uma vez
-        grabFocus: true
 
         property var allApps: []
         property string searchText: ""
@@ -1044,7 +1083,21 @@ ShellRoot {
                 searchField.text = ""
                 loadApps()
                 searchField.forceActiveFocus()
+                launcherGrabTimer.restart()
             }
+        }
+
+        Timer {
+            id: launcherGrabTimer
+            interval: 50
+            repeat: false
+            onTriggered: launcherGrab.active = true
+        }
+
+        HyprlandFocusGrab {
+            id: launcherGrab
+            windows: [ launcher ]
+            onCleared: bar.launcherOpen = false
         }
 
         Rectangle {
@@ -1154,7 +1207,12 @@ ShellRoot {
         implicitHeight: togglesColumn.implicitHeight + 28
         visible: bar.togglesOpen
         color: "transparent"
-        grabFocus: true
+
+        HyprlandFocusGrab {
+            id: togglesGrab
+            windows: [ toggles ]
+            onCleared: bar.togglesOpen = false
+        }
 
         property bool wifiEnabled: false
         property bool btEnabled: false
@@ -1165,7 +1223,17 @@ ShellRoot {
         }
 
         onVisibleChanged: {
-            if (visible) refresh()
+            if (visible) {
+                refresh()
+                togglesGrabTimer.restart()
+            }
+        }
+
+        Timer {
+            id: togglesGrabTimer
+            interval: 50
+            repeat: false
+            onTriggered: togglesGrab.active = true
         }
 
         Rectangle {
