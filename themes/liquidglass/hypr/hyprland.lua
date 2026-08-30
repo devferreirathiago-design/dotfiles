@@ -120,9 +120,8 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 -- Steam: toggle do workspace especial (esconde/mostra sem fechar)
--- ATENÇÃO: 'toggle_special' ainda não confirmado na doc do hl.dsp.workspace.
--- Se o hyprctl reload reclamar dessa linha, ver alternativas no wiki do Hyprland
--- (ex: hl.dsp.workspace.special("steam") ou sintaxe equivalente do seu parser).
+-- Confirmado na doc oficial: hl.dsp.workspace.toggle_special(name?) usa
+-- argumento posicional mesmo, essa linha está correta.
 hl.bind(mainMod .. " + " .. "S", hl.dsp.workspace.toggle_special("steam"))
 
 ------------------------
@@ -146,6 +145,17 @@ hl.window_rule({
     name      = "steam-workspace",
     match     = { class = "^(steam)$" },
     workspace = "special:steam silent",
+})
+
+-- Fix: menu de contexto do Steam (clique direito na lista de amigos, por exemplo)
+-- perde foco na hora e às vezes renderiza com tamanho 0x0. É um bug conhecido e
+-- antigo do Hyprland com os popups sem título/classe reconhecível que o Steam usa
+-- pra esses menus. Essa é a correção padrão documentada pela comunidade.
+hl.window_rule({
+    name        = "steam-context-menu-fix",
+    match       = { class = "^(steam)$", title = "^$" },
+    stay_focused = true,
+    min_size     = "1x1",
 })
 
 -- Floorp com leve transparência (tema liquidglass)
