@@ -112,10 +112,31 @@ ShellRoot {
 
                 Item { Layout.fillWidth: true }
 
-                // ---- DIREITA: CPU, RAM, relógio, energia ----
+                // ---- DIREITA: launcher, CPU, RAM, relógio, energia ----
                 RowLayout {
                     Layout.alignment: Qt.AlignVCenter
                     spacing: 14
+
+                    // Launcher de apps (lupa)
+                    Rectangle {
+                        width: 26
+                        height: 26
+                        radius: 13
+                        color: launcherMouseArea.containsMouse ? "#20000000" : "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "🔍"
+                            font.pixelSize: 13
+                        }
+
+                        MouseArea {
+                            id: launcherMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: bar.launcherOpen = !bar.launcherOpen
+                        }
+                    }
 
                     // CPU com rótulo claro
                     RowLayout {
@@ -184,6 +205,8 @@ ShellRoot {
         property bool powerMenuOpen: false
         // ---- Dashboard (painel grande de relógio/data, próximas etapas do roadmap) ----
         property bool dashboardOpen: false
+        // ---- Launcher de apps ----
+        property bool launcherOpen: false
         property var nowDate: new Date()
     }
 
@@ -676,6 +699,137 @@ ShellRoot {
             repeat: true
             triggeredOnStart: true
             onTriggered: weatherProc.running = true
+        }
+    }
+
+    // ── Launcher de apps ──────────────────────────────────────
+    PopupWindow {
+        id: launcher
+        anchor.window: bar
+        anchor.rect.x: 14
+        anchor.rect.y: bar.height
+        implicitWidth: 320
+        implicitHeight: 400
+        visible: bar.launcherOpen
+        color: "transparent"
+
+        property var allApps: []
+        property string searchText: ""
+        property var filteredApps: {
+            if (searchText.length === 0) return allApps
+            const q = searchText.toLowerCase()
+            return allApps.filter(function(a) { return a.name.toLowerCase().indexOf(q) !== -1 })
+        }
+
+        function loadApps() {
+            listAppsProc.running = true
+        }
+
+        function launchApp(execCmd) {
+            launchProc.command = ["sh", "-c", "setsid " + execCmd + " >/dev/null 2>&1 &"]
+            launchProc.running = true
+            bar.launcherOpen = false
+        }
+
+        onVisibleChanged: {
+            if (visible) {
+                searchField.text = ""
+                loadApps()
+                searchField.forceActiveFocus()
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#f2ffffff"
+            border.color: "#66ffffff"
+            radius: 20
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 10
+
+                TextField {
+                    id: searchField
+                    width: parent.width
+                    height: 36
+                    placeholderText: "Buscar aplicativo..."
+                    font.pixelSize: 14
+                    background: Rectangle {
+                        radius: 10
+                        color: "#20000000"
+                    }
+                    onTextChanged: launcher.searchText = text
+                    Keys.onEscapePressed: bar.launcherOpen = false
+                    Keys.onReturnPressed: {
+                        if (launcher.filteredApps.length > 0) {
+                            launcher.launchApp(launcher.filteredApps[0].exec)
+                        }
+                    }
+                }
+
+                ListView {
+                    width: parent.width
+                    height: parent.height - searchField.height - 10
+                    clip: true
+                    model: launcher.filteredApps
+                    spacing: 2
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: ListView.view.width
+                        height: 36
+                        radius: 8
+                        color: appMouse.containsMouse ? "#20000000" : "transparent"
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 10
+                            width: parent.width - 20
+                            text: modelData.name
+                            font.pixelSize: 13
+                            color: "#101012"
+                            elide: Text.ElideRight
+                        }
+
+                        MouseArea {
+                            id: appMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: launcher.launchApp(modelData.exec)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Lista .desktop files do sistema e extrai Name= / Exec=
+        Process {
+            id: listAppsProc
+            command: ["sh", "-c", "for f in /usr/share/applications/*.desktop ~/.local/share/applications/*.desktop; do [ -f \"$f\" ] || continue; name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-); execline=$(grep -m1 '^Exec=' \"$f\" | cut -d= -f2- | sed 's/%[a-zA-Z]//g'); nodisplay=$(grep -m1 '^NoDisplay=true' \"$f\"); if [ -n \"$name\" ] && [ -n \"$execline\" ] && [ -z \"$nodisplay\" ]; then echo \"$name|||$execline\"; fi; done | sort -u"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const lines = text.trim().split("\n").filter(function(l) { return l.length > 0 })
+                    const apps = []
+                    const seen = {}
+                    for (const line of lines) {
+                        const parts = line.split("|||")
+                        if (parts.length < 2) continue
+                        const name = parts[0].trim()
+                        const execCmd = parts[1].trim()
+                        if (!name || !execCmd || seen[name]) continue
+                        seen[name] = true
+                        apps.push({ name: name, exec: execCmd })
+                    }
+                    launcher.allApps = apps
+                }
+            }
+        }
+
+        Process {
+            id: launchProc
         }
     }
 }
